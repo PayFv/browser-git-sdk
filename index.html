@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>browser-git-sdk demo</title>
+    <script type="module" src="/demo/main.ts"></script>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero card">
+        <p class="eyebrow">browser-git-sdk</p>
+        <h1>GitWorkspace demo</h1>
+        <p class="lede">
+          A tiny browser-side Git workspace backed by libgit2 WASM and IndexedDB.
+        </p>
+
+        <label>
+          <span>Repo URL</span>
+          <input id="repo-url" value="http://192.168.167.250:3030/demo/demo-repo" />
+        </label>
+
+        <div class="grid">
+          <label>
+            <span>Branch</span>
+            <input id="branch" value="main" />
+          </label>
+          <label>
+            <span>Username</span>
+            <input id="username" value="demo" />
+          </label>
+        </div>
+
+        <label>
+          <span>Access Token</span>
+          <input id="token" value="83b66ef9ee774bd1f11594e4429ff32236d9dcda" />
+        </label>
+
+        <div class="actions">
+          <button id="sync">Sync</button>
+          <button id="files">Files</button>
+          <button id="read">Read README</button>
+          <button id="diff">Diff</button>
+          <button id="commit-push">Commit & Push README</button>
+        </div>
+      </section>
+
+      <div class="workspace">
+        <section class="card editor-card">
+          <div class="section-title">
+            <h2>README.md</h2>
+            <span>Editable file</span>
+          </div>
+          <textarea id="content" rows="12" placeholder="Click Read README first."></textarea>
+        </section>
+
+        <section class="card result-card">
+          <div class="section-title">
+            <h2>Result</h2>
+            <span>JSON / logs</span>
+          </div>
+          <pre id="result">Ready.</pre>
+        </section>
+      </div>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,25 @@
+{
+  "name": "browser-git-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Lightweight browser Git workspace SDK powered by libgit2 WASM.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "postinstall": "node scripts/copy-wasm-git.mjs",
+    "dev": "vite --host 0.0.0.0",
+    "build:demo": "tsc --noEmit && vite build",
+    "test": "tsx tests/diff.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "wasm-git": "^0.0.17"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3",
+    "vite": "^7.0.6"
+  }
+}
