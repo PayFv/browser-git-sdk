@@ -19,6 +19,11 @@ export interface SyncResult {
   output: string;
 }
 
+export interface WorkspaceEntry {
+  path: string;
+  type: "file" | "dir";
+}
+
 export interface GitStatus {
   raw: string;
   clean: boolean;

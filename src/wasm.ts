@@ -5,7 +5,9 @@ export interface WasmGitFileSystem {
   readFile(path: string, opts?: { encoding?: "utf8" }): string | Uint8Array;
   mount(type: unknown, opts: Record<string, unknown>, mountpoint: string): void;
   readdir(path: string): string[];
+  rmdir(path: string): void;
   syncfs(populate: boolean, callback: (error?: Error) => void): void;
+  unlink(path: string): void;
   writeFile(path: string, data: string | Uint8Array): void;
 }
 

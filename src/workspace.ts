@@ -1,5 +1,5 @@
 import { parseDiffOutput, parseStatusOutput } from "./diff";
-import type { GitDiff, GitOutput, GitStatus, GitWorkspaceOptions, SyncResult, WorkspaceRequest, WorkspaceResponse } from "./types";
+import type { GitDiff, GitOutput, GitStatus, GitWorkspaceOptions, SyncResult, WorkspaceEntry, WorkspaceRequest, WorkspaceResponse } from "./types";
 import { normalizeGitHttpUrl, repoSlug, stripCredentials, withAccessToken } from "./url";
 import { loadWasmGit, type WasmGit } from "./wasm";
 
@@ -51,14 +51,43 @@ export class GitWorkspace {
   }
 
   async files(path = "") {
-    await this.ensureRepo();
-    return this.listFilesFromRepo(this.resolveRepo().repoDir, path);
+    const entries = await this.entries(path);
+    return entries.filter((entry) => entry.type === "file").map((entry) => entry.path);
+  }
+
+  async entries(path = ""): Promise<WorkspaceEntry[]> {
+    // await this.ensureRepo();
+    return this.listEntriesFromRepo(this.resolveRepo().repoDir, path);
+  }
+
+  async mkdir(path: string) {
+    // await this.ensureRepo();
+    const normalized = path.replace(/^\/+|\/+$/g, "");
+    if (!normalized) throw new Error("directory path is required");
+
+    await this.inRepo(async () => {
+      this.ensureParentDirs(`${normalized}/.keep`);
+      this.ensureDir(normalized);
+    });
+    await this.syncFs(false);
+  }
+
+  async remove(path: string) {
+    // await this.ensureRepo();
+    const normalized = path.replace(/^\/+|\/+$/g, "");
+    if (!normalized) throw new Error("path is required");
+
+    await this.inRepo(async () => {
+      this.removePath(normalized);
+    });
+    await this.syncFs(false);
   }
 
   async readText(path: string) {
     await this.ensureRepo();
     const fullPath = `${this.resolveRepo().repoDir}/${path}`;
     if (!this.pathExists(fullPath)) throw new Error(`File not found: ${path}`);
+    if (this.isDirectory(fullPath)) throw new Error(`Path is a directory: ${path}`);
 
     const content = this.git!.FS.readFile(fullPath, { encoding: "utf8" });
     return typeof content === "string" ? content : new TextDecoder().decode(content);
@@ -67,6 +96,7 @@ export class GitWorkspace {
   async writeText(path: string, content: string) {
     await this.ensureRepo();
     await this.inRepo(async () => {
+      this.ensureParentDirs(path);
       this.git!.FS.writeFile(path, content);
     });
     await this.syncFs(false);
@@ -209,27 +239,51 @@ export class GitWorkspace {
     });
   }
 
-  private listFilesFromRepo(repoDir: string, basePath = "") {
-    const files: string[] = [];
+  private listEntriesFromRepo(repoDir: string, basePath = "") {
+    const entries: WorkspaceEntry[] = [];
     const root = basePath ? `${repoDir}/${basePath}` : repoDir;
-    if (!this.pathExists(root)) return files;
+    if (!this.pathExists(root)) return entries;
 
     const walk = (dir: string, prefix = "") => {
       for (const name of this.git!.FS.readdir(dir)) {
         if (name === "." || name === ".." || name === ".git") continue;
         const fullPath = `${dir}/${name}`;
         const relativePath = prefix ? `${prefix}/${name}` : name;
-        try {
-          this.git!.FS.readdir(fullPath);
+        if (this.isDirectory(fullPath)) {
+          entries.push({ path: relativePath, type: "dir" });
           walk(fullPath, relativePath);
-        } catch {
-          files.push(relativePath);
+        } else {
+          entries.push({ path: relativePath, type: "file" });
         }
       }
     };
 
     walk(root, basePath);
-    return files.slice(0, 80);
+    return entries.slice(0, 120);
+  }
+
+  private isDirectory(path: string) {
+    try {
+      this.git!.FS.readdir(path);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private removePath(path: string) {
+    if (!this.pathExists(path)) throw new Error(`Path not found: ${path}`);
+
+    if (this.isDirectory(path)) {
+      for (const name of this.git!.FS.readdir(path)) {
+        if (name === "." || name === "..") continue;
+        this.removePath(`${path}/${name}`);
+      }
+      this.git!.FS.rmdir(path);
+      return;
+    }
+
+    this.git!.FS.unlink(path);
   }
 
   private async capture(args: string[]) {
@@ -272,6 +326,16 @@ export class GitWorkspace {
     return new Promise<void>((resolve, reject) => {
       this.git!.FS.syncfs(populate, (error?: Error) => error ? reject(error) : resolve());
     });
+  }
+
+  private ensureParentDirs(relativePath: string) {
+    const parts = relativePath.split("/").filter(Boolean);
+    parts.pop();
+    let current = "";
+    for (const part of parts) {
+      current = current ? `${current}/${part}` : part;
+      this.ensureDir(current);
+    }
   }
 
   private ensureDir(path: string) {

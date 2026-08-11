@@ -9,6 +9,7 @@ export type {
   GitStatus,
   GitWorkspaceOptions,
   SyncResult,
+  WorkspaceEntry,
   WorkspaceMethod,
   WorkspaceRequest,
   WorkspaceResponse

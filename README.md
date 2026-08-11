@@ -83,14 +83,21 @@ class GitWorkspace {
 
 ## Demo
 
-Run the single-page demo:
+The Vite demo lives in `demo/` and depends on this package via `file:..`.
 
 ```sh
 npm install
+cd demo && npm install
 npm run dev
 ```
 
-Open the printed local URL. The demo is deliberately small and only meant to exercise the SDK directly. Full integration testing still lives in `git-ui-test`.
+Or from the repo root after `demo` dependencies are installed:
+
+```sh
+npm run dev
+```
+
+Open the printed local URL. Interaction logic is in `demo/main.js`. The demo is deliberately small and only meant to exercise the SDK directly.
 
 ## Notes
 
