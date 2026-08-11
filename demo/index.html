@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>browser-git-sdk demo</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <h1>browser-git-sdk</h1>
+      <p class="lede">Init → Sync → List Files，选中文件读写，并查看 Diff。</p>
+
+      <label>
+        <span>Repo URL</span>
+        <input id="repo-url" value="http://192.168.167.250:3030/five1_opendao.dev/test_0811_1" />
+      </label>
+
+      <div class="row">
+        <label>
+          <span>Branch</span>
+          <input id="branch" value="main" />
+        </label>
+        <label>
+          <span>Username</span>
+          <input id="username" value="five1_opendao.dev" />
+        </label>
+      </div>
+
+      <label>
+        <span>Access Token</span>
+        <input id="token" value="dd018c7346d999e5c6cbb3b2020adb77e2f2c92e" />
+      </label>
+
+      <div class="actions">
+        <button id="init" type="button">Init</button>
+        <button id="sync" type="button">Sync</button>
+        <button id="files" type="button">List Files</button>
+        <button id="diff-all" type="button">Diff All</button>
+        <button id="commit" type="button">Commit</button>
+        <button id="push" type="button">Push</button>
+      </div>
+
+      <label>
+        <span>Commit Message</span>
+        <input id="commit-message" value="Update from browser-git-sdk demo" />
+      </label>
+
+      <section class="workspace">
+        <aside class="tree-panel">
+          <div class="panel-head">
+            <h2>Files</h2>
+            <span id="file-count" title="在文件树空白处或节点上右键">0 · 右键菜单</span>
+          </div>
+          <div class="tree-tools">
+            <input id="new-path" placeholder="选中目录后可在其下新建，如 notes.md" />
+            <div class="actions compact">
+              <button id="add-file" type="button">Add File</button>
+              <button id="add-dir" type="button">Add Dir</button>
+            </div>
+          </div>
+          <ul id="file-tree" class="file-tree"></ul>
+        </aside>
+
+        <section class="editor-panel">
+          <div class="panel-head">
+            <h2 id="current-path">未选择文件</h2>
+            <div class="actions compact">
+              <button id="write" type="button">Write</button>
+              <button id="diff-file" type="button">Diff File</button>
+            </div>
+          </div>
+          <textarea id="editor" spellcheck="false" placeholder="选中左侧文件后可读取 / 编辑 / 写入。"></textarea>
+        </section>
+      </section>
+
+      <section class="diff-panel">
+        <div class="panel-head">
+          <h2>Diff</h2>
+          <span id="diff-summary">-</span>
+        </div>
+        <pre id="diff-view" class="diff-view">No diff yet.</pre>
+      </section>
+
+      <pre id="result">Ready.</pre>
+    </main>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>
