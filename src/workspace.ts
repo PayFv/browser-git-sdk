@@ -93,7 +93,28 @@ export class GitWorkspace {
     return typeof content === "string" ? content : new TextDecoder().decode(content);
   }
 
+  async readBytes(path: string) {
+    await this.ensureRepo();
+    const fullPath = `${this.resolveRepo().repoDir}/${path}`;
+    if (!this.pathExists(fullPath)) throw new Error(`File not found: ${path}`);
+    if (this.isDirectory(fullPath)) throw new Error(`Path is a directory: ${path}`);
+
+    const content = this.git!.FS.readFile(fullPath);
+    return typeof content === "string"
+      ? new TextEncoder().encode(content)
+      : new Uint8Array(content);
+  }
+
   async writeText(path: string, content: string) {
+    await this.ensureRepo();
+    await this.inRepo(async () => {
+      this.ensureParentDirs(path);
+      this.git!.FS.writeFile(path, content);
+    });
+    await this.syncFs(false);
+  }
+
+  async writeBytes(path: string, content: Uint8Array) {
     await this.ensureRepo();
     await this.inRepo(async () => {
       this.ensureParentDirs(path);
@@ -121,6 +142,19 @@ export class GitWorkspace {
   async commit(message = "Workspace commit") {
     await this.ensureRepo();
     await this.inRepo(() => this.run(["commit", "-m", message]));
+    await this.syncFs(false);
+  }
+
+  async commitPaths(paths: string[], message = "Workspace commit") {
+    await this.ensureRepo();
+    const normalizedPaths = normalizeCommitPaths(paths);
+
+    await this.inRepo(async () => {
+      for (const path of normalizedPaths) {
+        await this.run(["add", "--", path]);
+      }
+      await this.run(["commit", "--only", "-m", message, "--", ...normalizedPaths]);
+    });
     await this.syncFs(false);
   }
 
@@ -168,8 +202,18 @@ export class GitWorkspace {
     switch (request.method) {
       case "listFiles":
         return { files: await this.files(request.path || "") };
+      case "readBytes": {
+        const bytes = await this.readBytes(requiredPath(request));
+        return { path: request.path, bytes };
+      }
       case "readText":
         return { path: request.path, content: await this.readText(requiredPath(request)) };
+      case "writeBytes": {
+        const bytes = request.bytes;
+        if (!(bytes instanceof Uint8Array)) throw new Error("bytes are required");
+        await this.writeBytes(requiredPath(request), bytes);
+        return { path: request.path, bytes: bytes.byteLength };
+      }
       case "writeText": {
         const content = request.content ?? "";
         await this.writeText(requiredPath(request), content);
@@ -185,6 +229,11 @@ export class GitWorkspace {
       case "commit":
         await this.commit(request.message || "Workspace commit");
         return { message: request.message || "Workspace commit", committed: true };
+      case "commitPaths": {
+        const paths = request.paths ?? [];
+        await this.commitPaths(paths, request.message || "Workspace commit");
+        return { message: request.message || "Workspace commit", paths, committed: true };
+      }
       case "push":
         await this.push();
         return { pushed: true };
@@ -366,4 +415,15 @@ export class GitWorkspace {
 function requiredPath(request: WorkspaceRequest) {
   if (!request.path) throw new Error("path is required");
   return request.path;
+}
+
+export function normalizeCommitPaths(paths: string[]) {
+  const normalized = [...new Set(paths.map((path) => path.replace(/^\/+/, "").trim()))];
+  if (!normalized.length || normalized.some((path) => !path || path === ".")) {
+    throw new Error("at least one file path is required");
+  }
+  if (normalized.some((path) => path.split("/").some((segment) => segment === ".."))) {
+    throw new Error("commit paths must stay inside the repository");
+  }
+  return normalized;
 }

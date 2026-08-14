@@ -65,17 +65,22 @@ export interface GitOutput {
 
 export type WorkspaceMethod =
   | "listFiles"
+  | "readBytes"
   | "readText"
+  | "writeBytes"
   | "writeText"
   | "status"
   | "diff"
   | "stage"
   | "commit"
+  | "commitPaths"
   | "push";
 
 export interface WorkspaceRequest {
   method: WorkspaceMethod;
   path?: string;
+  paths?: string[];
+  bytes?: Uint8Array;
   content?: string;
   message?: string;
 }

@@ -1,4 +1,4 @@
-export { GitWorkspace } from "./workspace";
+export { GitWorkspace, normalizeCommitPaths } from "./workspace";
 export { normalizeGitHttpUrl, stripCredentials } from "./url";
 export { parseDiffOutput, parseStatusOutput } from "./diff";
 export type {

@@ -1,4 +1,5 @@
 import { parseDiffOutput } from "../src/diff";
+import { normalizeCommitPaths } from "../src/workspace";
 
 function assertEqual(actual: unknown, expected: unknown) {
   if (actual !== expected) throw new Error(`Expected ${String(expected)}, got ${String(actual)}`);
@@ -22,4 +23,21 @@ assertEqual(diff.files[0]?.newPath, "README.md");
 assertEqual(diff.files[0]?.hunks[0]?.lines[1]?.type, "delete");
 assertEqual(diff.files[0]?.hunks[0]?.lines[2]?.type, "add");
 
-console.log("diff parser ok");
+const commitPaths = normalizeCommitPaths([
+  "/Outputs/report.pdf",
+  "Outputs/report.pdf",
+  " Outputs/results.csv ",
+]);
+assertEqual(commitPaths.length, 2);
+assertEqual(commitPaths[0], "Outputs/report.pdf");
+assertEqual(commitPaths[1], "Outputs/results.csv");
+
+let traversalRejected = false;
+try {
+  normalizeCommitPaths(["../secret.txt"]);
+} catch {
+  traversalRejected = true;
+}
+assertEqual(traversalRejected, true);
+
+console.log("diff parser and workspace paths ok");

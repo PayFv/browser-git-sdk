@@ -105,3 +105,15 @@ Open the printed local URL. Interaction logic is in `demo/main.js`. The demo is 
 - HTTP Git servers must allow browser CORS requests.
 - HTTPS pages cannot fetch `http://` repositories because of browser mixed-content rules.
 - Credentials are used for Git HTTP requests and then removed from the saved remote URL.
+# Browser Git SDK
+
+`GitWorkspace` exposes text and binary file operations backed by its browser
+IndexedDB filesystem:
+
+```ts
+await workspace.writeBytes("Outputs/figure.png", pngBytes);
+const bytes = await workspace.readBytes("Outputs/figure.png");
+```
+
+Use `commitPaths(paths, message)` when a product flow must commit only a known
+set of files while leaving unrelated staged and working-tree changes alone.
