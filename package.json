@@ -11,7 +11,7 @@
     "postinstall": "node scripts/copy-wasm-git.mjs",
     "dev": "npm run dev --prefix demo",
     "build:demo": "npm run build --prefix demo",
-    "test": "tsx tests/diff.test.ts",
+    "test": "tsx tests/diff.test.ts && node --test tests/postinstall.test.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

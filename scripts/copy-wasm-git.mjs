@@ -1,14 +1,34 @@
 import { copyFileSync, mkdirSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { createRequire } from "node:module";
+import { basename, dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const files = ["lg2_async.js", "lg2_async.wasm"];
-const targetDir = resolve("public/vendor/wasm-git");
+const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
-mkdirSync(targetDir, { recursive: true });
+export function findConsumerRoot(root) {
+  let current = dirname(root);
 
-for (const file of files) {
-  const source = resolve("node_modules/wasm-git", file);
-  const target = resolve(targetDir, file);
-  mkdirSync(dirname(target), { recursive: true });
-  copyFileSync(source, target);
+  while (current !== dirname(current)) {
+    if (basename(current) === "node_modules") return dirname(current);
+    current = dirname(current);
+  }
+
+  return root;
+}
+
+export function copyWasmGitRuntime({ root = packageRoot, targetRoot = findConsumerRoot(root) } = {}) {
+  const require = createRequire(resolve(root, "package.json"));
+  const sourceDir = dirname(require.resolve(`wasm-git/${files[0]}`));
+  const targetDir = resolve(targetRoot, "public/vendor/wasm-git");
+
+  mkdirSync(targetDir, { recursive: true });
+
+  for (const file of files) {
+    copyFileSync(resolve(sourceDir, file), resolve(targetDir, file));
+  }
+}
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
+  copyWasmGitRuntime();
 }
