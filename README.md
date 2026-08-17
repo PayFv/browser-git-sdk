@@ -116,4 +116,6 @@ const bytes = await workspace.readBytes("Outputs/figure.png");
 ```
 
 Use `commitPaths(paths, message)` when a product flow must commit only a known
-set of files while leaving unrelated staged and working-tree changes alone.
+set of files while leaving unrelated staged and working-tree changes alone. The
+SDK isolates the temporary commit index because `wasm-git@0.0.17` only supports
+the basic `commit -m <message>` command.

@@ -5,6 +5,7 @@ import { loadWasmGit, type WasmGit } from "./wasm";
 
 const PERSIST_ROOT = "/repos";
 const HOME = "/home/web_user";
+let scopedCommitSequence = 0;
 
 export class GitWorkspace {
   private git?: WasmGit;
@@ -148,12 +149,30 @@ export class GitWorkspace {
   async commitPaths(paths: string[], message = "Workspace commit") {
     await this.ensureRepo();
     const normalizedPaths = normalizeCommitPaths(paths);
+    const { repoDir } = this.resolveRepo();
+    const indexPath = `${repoDir}/.git/index`;
+    const temporaryRepoDir = `/browser-git-sdk-scoped-commit-${Date.now()}-${scopedCommitSequence++}`;
 
     await this.inRepo(async () => {
-      for (const path of normalizedPaths) {
-        await this.run(["add", "--", path]);
+      const originalIndex = this.readFsBytes(indexPath);
+      let stagedIndex = originalIndex;
+      let committed = false;
+
+      try {
+        for (const path of normalizedPaths) await this.run(["add", path]);
+        stagedIndex = this.readFsBytes(indexPath);
+
+        await this.run(["clone", repoDir, temporaryRepoDir]);
+        const cleanIndex = this.readFsBytes(`${temporaryRepoDir}/.git/index`);
+        this.git!.FS.writeFile(indexPath, cleanIndex);
+
+        for (const path of normalizedPaths) await this.run(["add", path]);
+        await this.run(["commit", "-m", message]);
+        committed = true;
+      } finally {
+        this.git!.FS.writeFile(indexPath, committed ? stagedIndex : originalIndex);
+        if (this.pathExists(temporaryRepoDir)) this.removePath(temporaryRepoDir);
       }
-      await this.run(["commit", "--only", "-m", message, "--", ...normalizedPaths]);
     });
     await this.syncFs(false);
   }
@@ -395,6 +414,13 @@ export class GitWorkspace {
     return Boolean(this.git?.FS.analyzePath(path).exists);
   }
 
+  private readFsBytes(path: string) {
+    const content = this.git!.FS.readFile(path);
+    return typeof content === "string"
+      ? new TextEncoder().encode(content)
+      : new Uint8Array(content).slice();
+  }
+
   private checkMixedContent(repoUrl: string) {
     if (globalThis.location?.protocol === "https:" && new URL(repoUrl).protocol === "http:") {
       throw new Error("当前页面是 HTTPS，浏览器会拦截 http:// 仓库请求。请使用 HTTPS 仓库地址。");
@@ -424,6 +450,9 @@ export function normalizeCommitPaths(paths: string[]) {
   }
   if (normalized.some((path) => path.split("/").some((segment) => segment === ".."))) {
     throw new Error("commit paths must stay inside the repository");
+  }
+  if (normalized.some((path) => path.startsWith("-"))) {
+    throw new Error("commit paths must not be command options");
   }
   return normalized;
 }
